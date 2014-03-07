@@ -57,10 +57,42 @@ class Alert_Snapshot_Widget extends \WP_Widget {
 		echo $args['before_widget'];
 		if (!empty($title))
 			echo $args['before_title'].$title.$args['after_title'];
+		
+		// "camera2.svc/" + camera.mac + "/snapshotviewable"
 			
 		echo __('Hello, World!', 'text_domain');
 		
 		echo $args['after_widget'];
+	}
+	
+	function authenticate($username, $password) {
+    $url = 'https://alert.logitech.com/services/membership.svc/authenticate';
+    $data = '<AuthInfo><UserName>' . escape_xml($username) . 
+            '</UserName><Password>' . escape_xml($password) . 
+            '</Password></AuthInfo>';
+    $options = array(
+        'http' => array(
+            'header'  => "Content-type: text/xml\r\n"
+        ),
+    );
+    $response = http_parse_message(http_post_data($url, $data, $options));
+    if ($response['responseCode'] == 200) {
+        return $response['headers']['X-Authorization-Token']; 
+    }
+    return null;
+	}
+	
+	function escape_xml($value) {
+	    return strtr(
+        $value, 
+        array(
+            "<" => "&lt;",
+            ">" => "&gt;",
+            '"' => "&quot;",
+            "'" => "&apos;",
+            "&" => "&amp;",
+        )
+    );
 	}
 
 	/**
@@ -71,18 +103,29 @@ class Alert_Snapshot_Widget extends \WP_Widget {
 	 * @param array $instance Previously saved values from database.
 	 */
 	public function form($instance) {
-		if (isset($instance['title'])) {
-			$title = $instance['title'];
+		if (isset($instance['username'])) {
+			$username = $instance['username'];
 		}
-		else {
-			$title = __('New title', 'text_domain');
+		if (isset($instance['password'])) {
+			$password = $instance['password'];
+		}
+		if (isset($instance['mac'])) {
+			$mac = $instance['mac'];
 		}
 		// Switching from PHP to HTML markup, hence the end tag.
 		?>
 		
 		<p>
-		<label for="<?php echo $this->get_field_id( 'title' ); ?>"><?php _e('Title:'); ?></label> 
-		<input class="widefat" id="<?php echo $this->get_field_id( 'title' ); ?>" name="<?php echo $this->get_field_name( 'title' ); ?>" type="text" value="<?php echo esc_attr( $title ); ?>">
+		<label for="<?php echo $this->get_field_id('username'); ?>"><?php _e('Username:'); ?></label> 
+		<input class="widefat" id="<?php echo $this->get_field_id('username'); ?>" name="<?php echo $this->get_field_name('username'); ?>" type="text" value="<?php echo esc_attr($username); ?>">
+		</p>
+		<p>
+		<label for="<?php echo $this->get_field_id('password'); ?>"><?php _e('Password:'); ?></label> 
+		<input class="widefat" id="<?php echo $this->get_field_id('password'); ?>" name="<?php echo $this->get_field_name('password'); ?>" type="password" value="<?php echo esc_attr($password); ?>">
+		</p>
+		<p>
+		<label for="<?php echo $this->get_field_id('mac'); ?>"><?php _e('Camera MAC Address:'); ?></label> 
+		<input class="widefat" id="<?php echo $this->get_field_id('mac'); ?>" name="<?php echo $this->get_field_name('mac'); ?>" type="text" value="<?php echo esc_attr($mac); ?>">
 		</p>
 		
 		<?php 
@@ -99,9 +142,11 @@ class Alert_Snapshot_Widget extends \WP_Widget {
 	 *
 	 * @return array Updated safe values to be saved.
 	 */
-	public function update( $new_instance, $old_instance ) {
+	public function update($new_instance, $old_instance) {
 		$instance = array();
-		$instance['title'] = (!empty($new_instance['title'])) ? strip_tags($new_instance['title']) : '';
+		$instance['username'] = (!empty($new_instance['username'])) ? strip_tags($new_instance['username']) : '';
+		$instance['password'] = (!empty($new_instance['password'])) ? strip_tags($new_instance['password']) : '';
+		$instance['mac'] = (!empty($new_instance['mac'])) ? strip_tags($new_instance['mac']) : '';
 
 		return $instance;
 	}
