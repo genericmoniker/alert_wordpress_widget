@@ -26,7 +26,9 @@
 
 namespace esmithy_net;
 
-error_reporting(E_ALL);
+# Uncomment for debugging:
+#error_reporting(E_ALL);
+#ini_set('display_errors', 'on');
 
 /* Register the widget */
 add_action('widgets_init', function() {
@@ -56,8 +58,6 @@ class Alert_Snapshot_Widget extends \WP_Widget {
      * @param array $instance Saved values from database.
      */
     function widget($args, $instance) {
-        $title = apply_filters('widget_title', $instance['title']);
-
         echo $args['before_widget'];
         if (!empty($title))
             echo $args['before_title'].$title.$args['after_title'];
@@ -92,9 +92,7 @@ class Alert_Snapshot_Widget extends \WP_Widget {
     
     function download_image($username, $password, $mac) {
         $token = $this->authenticate($username, $password);
-        echo $token;
         if ($token != null) {
-            echo '<!-- 002 -->';
             $url = 'https://alert.logitech.com/Services/camera2.svc/' . $mac . '/snapshotviewable?_auth=' . $token;
             file_put_contents(self::IMAGE_FILENAME, file_get_contents($url));
         }
@@ -108,16 +106,9 @@ class Alert_Snapshot_Widget extends \WP_Widget {
         $data = '<AuthInfo><UserName>' . $this->escape_xml($username) .
                 '</UserName><Password>' . $this->escape_xml($password) .
                 '</Password></AuthInfo>';
-        $response = $this->post($url, $data);
-        echo '<!-- 001 -->';
-        echo $response[0]['http_code'];
-        if ($response[0]['http_code'] == 200) {
-            $headers = get_headers($response[0]['url']);
-            foreach($headers as $value)
-            {
-                if (substr($value, 0, 22) == "X-Authorization-Token:" )
-                    return trim( substr( $value, 22, strlen($value) ) );
-            }
+        $content = $this->post_xml($url, $data);
+        if (preg_match('#X-Authorization-Token:(.*)\n#', $content, $matches)) {
+            return trim($matches[1]);
         }
         return null;
 	}
@@ -135,16 +126,21 @@ class Alert_Snapshot_Widget extends \WP_Widget {
         );
 	}
 	
-	function post($url, $data) {
-        $ch = curl_init($url);
+	function post_xml($url, $data) {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_HEADER, 1);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+        curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_POST, 1);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/xml'));
+        curl_setopt($ch, CURLOPT_POSTFIELDS,"$data");
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_FRESH_CONNECT, 1);	
         $content = curl_exec($ch);
-        $meta = curl_getinfo($ch);
+        echo '<!-- curl_error: ', curl_error($ch), '-->';
         curl_close($ch);
-        return array($meta, $content);
+        return $content;
 	}
 
 	/**
