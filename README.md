@@ -1,5 +1,5 @@
-alert_wordpress_widget
-======================
+Logitech Alert Widget
+=====================
 
 A WordPress widget to show a Logitech Alert camera snapshot.
 
