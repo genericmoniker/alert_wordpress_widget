@@ -18,5 +18,7 @@ the snapshot to appear:
 Known Issues
 ------------
 
-I'm pretty sure you can only have one such widget per site, which could be fixed by
+I'm pretty sure you can only have one such widget per site, which could possibly be fixed by
 having a better name for the cached image file.
+
+Only tested on PHP 5.3.
