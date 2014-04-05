@@ -24,7 +24,7 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-namespace esmithy_net;
+namespace esmithy_net; # PHP>=5.3.0
 
 # Uncomment for debugging:
 #error_reporting(E_ALL);
@@ -71,9 +71,10 @@ class Alert_Snapshot_Widget extends \WP_Widget {
                     $instance['password'],
                     $instance['mac']
                 );
+                echo '<!-- new image downloaded -->';
             }
-
-            echo '<img src="' . self::IMAGE_FILENAME . '" />';
+            $image_url = get_site_url(get_current_blog_id(), self::IMAGE_FILENAME);
+            echo '<img class="aligncenter" src="' . $image_url . '" />';
         } else {
             echo '<p>cURL support missing</p>';
         }
@@ -85,9 +86,15 @@ class Alert_Snapshot_Widget extends \WP_Widget {
     
     function cached_image_too_old() {
         if (file_exists(self::IMAGE_FILENAME)) {
-            return time()-filemtime($filename) > ONE_MINUTE;
+            return time()-filemtime(self::IMAGE_FILENAME) > self::ONE_MINUTE;
         }
         return true;
+    }
+    
+    function local_filetime($filename) {
+        $utc_date = gmdate("F d Y H:i:s", filemtime($filename)) . ' UTC';
+        $time = strtotime($utc_date.' UTC');
+        return date("F d Y H:i:s T", $time);
     }
     
     function download_image($username, $password, $mac) {
