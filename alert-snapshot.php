@@ -101,10 +101,16 @@ class Alert_Snapshot_Widget extends \WP_Widget {
         $token = $this->authenticate($username, $password);
         if ($token != null) {
             $url = 'https://alert.logitech.com/Services/camera2.svc/' . $mac . '/snapshotviewable?_auth=' . $token;
-            file_put_contents(self::IMAGE_FILENAME, file_get_contents($url));
+            $content = file_get_contents($url);
+            if($content !== FALSE) {
+                file_put_contents(self::IMAGE_FILENAME, $content);
+            }
+            else {
+                echo '<p>Sorry, the camera appears to be offline at the moment.</p>';
+            }
         }
         else {
-            echo 'Authentication failed';
+            echo '<p>Authentication failed.</p>';
         }
     }
 
